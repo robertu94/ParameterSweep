@@ -31,6 +31,12 @@ auto array_to_tuple_impl(Array const& array, std::index_sequence<Is...>)
 	return std::make_tuple(array[Is]...);
 }
 
+template <class Func, class Tuple, std::size_t ...Is>
+void apply_to_elm_impl (Func&& func, Tuple&& t, std::size_t i, std::index_sequence<Is...>)
+{
+	((void)(i == Is && (std::forward<Func>(func)(std::get<Is>(std::forward<Tuple>(t))),true)), ...);
+}
+
 } // namespace
 
 template <class Func, class... T>
@@ -58,4 +64,16 @@ template <class T, size_t N>
 auto array_to_tuple(std::array<T,N> const& a)
 {
 	return array_to_tuple_impl(a, std::make_index_sequence<N>{});
+}
+
+template <class Func,  class...Types>
+void apply_to_elm(Func func, std::tuple<Types...> const& t, size_t index)
+{
+	apply_to_elm_impl(func, t, index, std::index_sequence_for<Types...>{});
+}
+
+template <class Type, class... Types>
+void get_runtime(std::tuple<Types...> const& t, size_t index, Type& elm)
+{
+	apply_to_elm_impl([&elm](auto&& i){elm = i;}, t, index, std::index_sequence_for<Types...>{});
 }
