@@ -69,6 +69,8 @@ public:
 	// swappable
     void swap(iterator& it){
 		std::swap(builder, it.builder);
+		std::swap(end_flag, it.end_flag);
+		std::swap(replicant, it.replicant);
 		std::swap(value, it.value);
 		std::swap(indices, it.indices);
 	}
