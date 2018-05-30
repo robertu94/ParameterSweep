@@ -1,3 +1,4 @@
+#include <random>
 #include "tuple_algorithms.hpp"
 
 #include <gtest/gtest.h>
@@ -83,12 +84,32 @@ TEST(tuple_algorithms, apply_to_elm)
 
 TEST(tuple_algorithms, get_runtime)
 {
-	auto t = std::make_tuple(1,2,3);
+	auto t = std::make_tuple(0,1,2);
+
 	size_t ret;
-	for (size_t i = 1; i < 4; ++i) {
-		get_runtime(t,i,ret);
-		EXPECT_EQ(i,ret);
+	for (size_t idx = 0; idx < 3; ++idx) {
+		get_runtime(t,idx,ret);
+		EXPECT_EQ(idx,ret);
 	}
+
+
+	//for consistency use a fixed seed in the test
+	std::seed_seq seeds;
+	std::mt19937 eng(seeds);
+	std::uniform_int_distribution<> gen(-100, 100);
+	auto rand = [&gen,&eng](){return gen(eng);};
+
+	constexpr int size = 100;
+	std::array<int,size> a;
+	std::generate(std::begin(a),std::end(a), rand);
+
+	auto t2 = array_to_tuple(a);
+	for(int i = 0; i <size; ++i)
+	{
+		get_runtime(t2, i, ret);
+		EXPECT_EQ(a[i], ret);
+	}
+
 
 
 }

@@ -31,10 +31,17 @@ auto array_to_tuple_impl(Array const& array, std::index_sequence<Is...>)
 	return std::make_tuple(array[Is]...);
 }
 
-template <class Func, class Tuple, std::size_t ...Is>
-void apply_to_elm_impl (Func&& func, Tuple&& t, std::size_t i, std::index_sequence<Is...>)
+template<class Type, class Func>
+void do_apply(size_t is, size_t idx, Func&& func, Type&& tuple_element)
 {
-	((void)(i == Is && (std::forward<Func>(func)(std::get<Is>(std::forward<Tuple>(t))),true)), ...);
+	if (is==idx)
+		std::forward<Func>(func)(std::forward<Type>(tuple_element));
+}
+
+template <class Func, class Tuple, std::size_t ...Is>
+void apply_to_elm_impl (Func&& func, Tuple&& t, std::size_t index, std::index_sequence<Is...>)
+{
+	(do_apply(Is,index,std::forward<Func>(func),std::get<Is>(t)),...);
 }
 
 } // namespace
