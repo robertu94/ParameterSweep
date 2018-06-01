@@ -1,3 +1,4 @@
+#include <iterator_checks.hpp>
 #include <ParameterSweep.hpp>
 
 #include <string>
@@ -25,33 +26,20 @@ class ParameterSweepBuilder: public ::testing::Test
 
 	static constexpr auto all_designs = {Design::FullFactorial, Design::OneAtATime};
 	using example_type = Builder<std::vector<int>,std::vector<float>>;
+	using iterator = example_type::iterator;
 };
 
 TEST_F(ParameterSweepBuilder, IteratorPrimitives)
 {
-	typedef example_type::iterator iterator;
-	static_assert(std::is_same<iterator::value_type, std::tuple<int,float>>::value, "iterator value type incorrect");
-	static_assert(std::is_same<iterator::reference, std::tuple<int,float>&>::value, "iterator reference type incorrect");
-	static_assert(std::is_same<iterator::pointer, std::tuple<int,float>*>::value, "iterator pointer type incorrect");
-	static_assert(std::is_same<iterator::difference_type, std::ptrdiff_t>::value, "iterator difference_type type incorrect");
-	static_assert(std::is_same<iterator::iterator_category, std::forward_iterator_tag>::value, "iterator category type incorrect");
+	TestForwardWritable<std::tuple<int,float>, example_type::iterator> tests;
+	(void)tests;
 
-
-	//iterator_traits typedefs exist
-	static_assert(std::is_same<std::iterator_traits<iterator>::value_type, std::tuple<int,float>>::value, "iterator value type incorrect");
-	static_assert(std::is_same<std::iterator_traits<iterator>::reference, std::tuple<int,float>&>::value, "iterator reference type incorrect");
-	static_assert(std::is_same<std::iterator_traits<iterator>::pointer, std::tuple<int,float>*>::value, "iterator pointer type incorrect");
-	static_assert(std::is_same<std::iterator_traits<iterator>::difference_type, std::ptrdiff_t>::value, "iterator difference_type type incorrect");
-	static_assert(std::is_same<std::iterator_traits<iterator>::iterator_category, std::forward_iterator_tag>::value, "iterator category type incorrect");
-
-	static_assert(std::is_copy_constructible<iterator>::value, "is not copy constructible");
 	//is copy assignable
 	{
 	iterator a, b;
 	a = b;
 	}
 
-	static_assert(std::is_destructible<iterator>::value, "is not destructable");
 
 	//is swappable
 	{

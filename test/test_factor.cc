@@ -1,3 +1,4 @@
+#include <iterator_checks.hpp>
 #include <Factor.hpp>
 #include <vector>
 #include <iterator>
@@ -19,27 +20,22 @@ class FactorTest: public ::testing::Test
 	std::vector<int> vi = {1,2,3,4};
 	std::set<int> si = {1,2,5};
 	using example_type = Factor<std::vector<int>, std::set<int>>;
+	using iterator = example_type::iterator;
 	//Factor<> empty;
 	example_type example = Factor(vi,si);
 };
 
 TEST_F(FactorTest, IteratorPrimitives)
 {
-	typedef example_type::iterator iterator;
-	static_assert(std::is_same<iterator::value_type, int>::value, "iterator value type incorrect");
-	static_assert(std::is_same<iterator::reference, int&>::value, "iterator reference type incorrect");
-	static_assert(std::is_same<iterator::pointer, int*>::value, "iterator pointer type incorrect");
-	static_assert(std::is_same<iterator::difference_type, std::ptrdiff_t>::value, "iterator difference_type type incorrect");
-	static_assert(std::is_same<iterator::iterator_category, std::forward_iterator_tag>::value, "iterator category type incorrect");
+	TestForwardWritable<int, example_type::iterator> tests;
+	(void)tests;
 
-	static_assert(std::is_copy_constructible<iterator>::value, "is not copy constructible");
 	//is copy assignable
 	{
 	iterator a, b;
 	a = b;
 	}
 
-	static_assert(std::is_destructible<iterator>::value, "is not destructable");
 
 	//is swappable
 	{
