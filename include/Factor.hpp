@@ -94,6 +94,7 @@ public:
     index_type index;
     value_type value;
   };
+  using value_type = typename iterator::value_type;
 
   iterator begin() { return iterator(this); }
 

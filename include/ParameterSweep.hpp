@@ -46,7 +46,7 @@ public:
     using iterator_category = std::forward_iterator_tag;
 	using index_type = std::array<size_t, std::tuple_size<value_type>::value>;
 
-    iterator(Builder* builder):
+    iterator(Builder const* builder):
 		builder(builder),
 		end_flag(false),
 		replicant(0),
@@ -108,16 +108,18 @@ public:
 	}
 
   private:
-    Builder* builder;
+    Builder const* builder;
 	bool end_flag;
 	size_t replicant;
 	index_type indices;
 	value_type value;
   };
 
-  iterator begin() { return {this}; }
+  using value_type = typename iterator::value_type;
 
-  iterator end() { return {}; }
+  iterator begin() const { return {this}; }
+
+  iterator end() const { return {}; }
 
   size_t size() const
   {
@@ -177,7 +179,7 @@ private:
   size_t replicants;
   std::tuple<Factors...> factors;
 
-  void next_index(typename iterator::index_type& index, bool& end_flag)
+  void next_index(typename iterator::index_type& index, bool& end_flag) const
   {
 	  auto dim_tuple = tuple_transform([](auto&& factor){
 			  return std::size(factor);
@@ -216,7 +218,7 @@ private:
   }
 
   typename iterator::value_type
-  get_value_at_index(typename iterator::index_type const& index_a) {
+  get_value_at_index(typename iterator::index_type const& index_a) const{
 	  auto index = array_to_tuple(index_a);
 	  auto values = tuple_transform([](auto&& factor, auto const& index){
 	      return *std::next(std::begin(factor), index);

@@ -33,7 +33,7 @@ public:
       : value()
       , factor(nullptr)
     {}
-    iterator(NormalFactor* factor)
+    iterator(NormalFactor const* factor)
       : value(factor->mean - (factor->levels * factor->stddev))
       , factor(factor)
     {
@@ -72,11 +72,11 @@ public:
       return (factor == nullptr) || (value > factor->end_point());
     }
     NumericType value;
-    NormalFactor* factor;
+    NormalFactor const* factor;
   };
 
-  iterator begin() { return iterator(this); }
-  iterator end() { return iterator(); }
+  iterator begin() const { return iterator(this); }
+  iterator end() const { return iterator(); }
 
 private:
   inline NumericType end_point() const { return (levels * stddev) + mean; }
@@ -111,7 +111,7 @@ public:
       : value()
       , factor(nullptr)
     {}
-    iterator(RangeFactor* factor)
+    iterator(RangeFactor const* factor)
       : value(factor->min)
       , factor(factor)
     {
@@ -152,11 +152,11 @@ public:
       return factor == nullptr || (value > factor->max);
     }
     NumericType value;
-    RangeFactor* factor;
+    RangeFactor const* factor;
   };
 
-  iterator begin() { return iterator(this); }
-  iterator end() { return iterator(); }
+  iterator begin() const { return iterator(this); }
+  iterator end() const { return iterator(); }
 
 private:
   NumericType increment() const { return (max - min + 1) / (levels); }
@@ -177,8 +177,8 @@ public:
   using iterator = typename std::vector<NumericType>::const_iterator;
   using value_type = NumericType;
 
-  auto begin() { return std::begin(values); }
-  auto end() { return std::end(values); }
+  auto begin() const { return std::begin(values); }
+  auto end() const { return std::end(values); }
   size_t size() const { return std::size(values); }
 
 private:
