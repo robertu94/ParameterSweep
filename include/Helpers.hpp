@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <iterator>
 #include <vector>
+#include <cmath>
 namespace ParameterSweep {
 /*
  * A class that represents values at standard deviations above and below the
@@ -87,13 +88,49 @@ private:
 /*
  * A class that represents values evenly spaced in a range
  */
-template <class NumericType>
+template<class T>
+struct Arithmatic {
+	static T increment(T current, T increment) {
+		return current + increment;
+	}
+	static T step_size(T min, T max, size_t levels) {
+		return  (max - min + 1)/levels;
+	}
+
+	static bool valid (T val) {
+		return val > 0;
+	}
+};
+
+template<class T>
+struct Geometric {
+	static T increment(T current, T increment) {
+		return current * increment;
+	}
+	static T step_size(T min, T max, size_t levels) {
+		double ret = exp(1.0/static_cast<double>(levels-1) * ( log(static_cast<double>(max)) - log(static_cast<double>(min))));
+		if constexpr(std::is_integral<T>::value) {
+			return std::round(ret);
+		} else {
+			return ret;
+		}
+	}
+	static bool valid(T val) {
+		return  val > 1.0;
+	}
+};
+
+
+template <class NumericType, template <class> class Increment = Arithmatic>
 class RangeFactor
 {
 public:
+  using Step = Increment<NumericType>;
+
   RangeFactor(NumericType min, NumericType max, size_t levels)
     : min(min)
     , max(max)
+	, step_size(Step::step_size(min,max,levels))
     , levels(levels)
   {}
 
@@ -117,8 +154,8 @@ public:
     {
       assert(factor->min < factor->max &&
              "the max should be greater than the min");
-      assert(factor->increment() > 0 &&
-             "the iterator increment should be positive");
+      assert(Step::valid(factor->step_size) &&
+             "the iterator increment should be valid");
     }
     bool operator==(iterator const& it) const
     {
@@ -136,7 +173,7 @@ public:
     }
     iterator& operator++()
     {
-      value += factor->increment();
+      value = Step::increment(value,factor->step_size);
       return *this;
     }
     iterator operator++(int)
@@ -159,8 +196,7 @@ public:
   iterator end() const { return iterator(); }
 
 private:
-  NumericType increment() const { return (max - min + 1) / (levels); }
-  NumericType min, max;
+  NumericType min, max, step_size;
   size_t levels;
 };
 

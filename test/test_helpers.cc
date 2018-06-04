@@ -27,6 +27,7 @@ TEST_F(HelperTest, IteratorPrimitives)
 	//perform all the static assertions, avoid unused declaration warning
 	TestForwardReadOnly<NormalFactor<int>,
 		RangeFactor<int>,
+		RangeFactor<int,Geometric>,
 		RandomFactor<int,Distribution<std::mt19937, std::uniform_int_distribution<>>>,
 		TransformFactor<std::vector<int>::iterator, std::function<int(int)>>,
 		TransformFactor<std::vector<int>::iterator, std::function<float(int)>>
@@ -38,6 +39,7 @@ TEST_F(HelperTest, Values)
 {
 	auto normal = NormalFactor(0,1,5);
 	auto range  = RangeFactor(-2,4,7);
+	auto geo_range  = RangeFactor<int,Geometric>(2,16,4);
 	auto trans  = TransformFactor(std::begin(normal), std::end(normal), [](int i){return i+3;});
 
 	std::seed_seq seed;
@@ -58,6 +60,13 @@ TEST_F(HelperTest, Values)
 	std::vector<int> expected_range = { -2,-1,0,1,2,3,4};
 	EXPECT_EQ(expected_range, results_range);
 	}
+
+	{
+	std::vector<int> results_range(std::begin(geo_range), std::end(geo_range));
+	std::vector<int> expected_range = {2,4,8,16};
+	EXPECT_EQ(expected_range, results_range);
+	}
+	
 
 	{
 	std::vector<int> results_transform(std::begin(trans), std::end(trans));
