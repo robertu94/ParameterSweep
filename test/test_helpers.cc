@@ -2,6 +2,7 @@
 
 #include <Distributions.hpp>
 #include <Helpers.hpp>
+#include <ParameterSweep.hpp>
 
 #include <tuple>
 #include <random>
@@ -29,8 +30,8 @@ TEST_F(HelperTest, IteratorPrimitives)
 		RangeFactor<int>,
 		RangeFactor<int,Geometric>,
 		RandomFactor<int,Distribution<std::mt19937, std::uniform_int_distribution<>>>,
-		TransformFactor<std::vector<int>::iterator, std::function<int(int)>>,
-		TransformFactor<std::vector<int>::iterator, std::function<float(int)>>
+		TransformFactor<std::vector<int>, std::function<int(int)>>,
+		TransformFactor<std::vector<int>, std::function<float(int)>>
 		> tests;
 	(void)tests;
 }
@@ -40,7 +41,7 @@ TEST_F(HelperTest, Values)
 	auto normal = NormalFactor(0,1,5);
 	auto range  = RangeFactor(-2,4,7);
 	auto geo_range  = RangeFactor<int,Geometric>(2,16,4);
-	auto trans  = TransformFactor(std::begin(normal), std::end(normal), [](int i){return i+3;});
+	auto trans  = TransformFactor(normal, [](int i){return i+3;});
 
 	std::seed_seq seed;
 	std::mt19937 eng(seed);
@@ -53,18 +54,21 @@ TEST_F(HelperTest, Values)
 	std::vector<int> results_normal(std::begin(normal), std::end(normal));
 	std::vector<int> expected_normal = { -5,-4,-3,-2,-1,0,1,2,3,4,5};
 	EXPECT_EQ(expected_normal, results_normal);
+	EXPECT_EQ(std::size(expected_normal), std::size(results_normal));
 	}
 	
 	{
 	std::vector<int> results_range(std::begin(range), std::end(range));
 	std::vector<int> expected_range = { -2,-1,0,1,2,3,4};
 	EXPECT_EQ(expected_range, results_range);
+	EXPECT_EQ(std::size(expected_range), std::size(range));
 	}
 
 	{
 	std::vector<int> results_range(std::begin(geo_range), std::end(geo_range));
 	std::vector<int> expected_range = {2,4,8,16};
 	EXPECT_EQ(expected_range, results_range);
+	EXPECT_EQ(std::size(expected_range), std::size(geo_range));
 	}
 	
 
@@ -72,6 +76,7 @@ TEST_F(HelperTest, Values)
 	std::vector<int> results_transform(std::begin(trans), std::end(trans));
 	std::vector<int> expected_transform = { -2,-1,0,1,2,3,4,5,6,7,8};
 	EXPECT_EQ(expected_transform, results_transform);
+	EXPECT_EQ(std::size(expected_transform), std::size(trans));
 	}
 
 	{
@@ -83,7 +88,38 @@ TEST_F(HelperTest, Values)
 	std::generate(std::begin(expected_random), std::end(expected_random), rand_expected);
 	std::vector<int> results_random(std::begin(random), std::end(random));
 	EXPECT_EQ(expected_random, results_random);
+	EXPECT_EQ(std::size(expected_random), std::size(random));
 	}
 }
 
+//test cases that caused problems in the past
+TEST_F(HelperTest, BadCases) {
+	//this test case creates an iterator that will get stuck at 0 it not correctly implemented
+	auto absolute_bound = RangeFactor<float,Geometric>(1e-6, 1e2, 8);
+	auto it = std::begin(absolute_bound);
+	auto end = std::end(absolute_bound);
+	std::advance(it,8);
+	EXPECT_EQ(end, it);
 
+
+	RangeFactor a(-100, 100, 5), b(0, 10, 5);
+	Builder ab(a,b);
+	TransformFactor pl(ab, [](auto&& i){ return std::get<0>(i) + std::get<1>(i);});
+	EXPECT_EQ(25, std::size(pl));
+
+}
+
+TEST_F(HelperTest, InvalidIterators) {
+	EXPECT_DEATH({
+			NormalFactor norm(20,0,4);
+	}, "the standard deviation must be greater than 0");
+
+	EXPECT_DEATH({
+			RangeFactor rng(100, 3, 100);
+			}, "the max should be greater than the min");
+
+	EXPECT_DEATH({
+			RangeFactor rng(1, 2, 100);
+			}, "the iterator increment should be valid");
+
+}

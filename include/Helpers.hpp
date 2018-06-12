@@ -18,7 +18,10 @@ public:
     : mean(mean)
     , stddev(stddev)
     , levels(levels)
-  {}
+  {
+      assert(stddev > NumericType(0) &&
+             "the standard deviation must be greater than 0");
+  }
 
   using value_type = NumericType;
   class iterator
@@ -38,13 +41,12 @@ public:
       : value(factor->mean - (factor->levels * factor->stddev))
       , factor(factor)
     {
-      assert(factor->stddev > NumericType(0) &&
-             "the standard deviation must be greater than 0");
     }
     bool operator==(iterator const& it) const
     {
-      return (value == it.value && factor == it.factor) ||
-             (is_endptr() && it.is_endptr());
+		auto e1 = is_endptr();
+		auto e2 = it.is_endptr();
+      return (e1 && e2) || (!e1 && !e2 && value == it.value && factor == it.factor);
     }
     bool operator!=(iterator const& it) const { return !(*this == it); }
     reference operator*() { return value; }
@@ -78,6 +80,7 @@ public:
 
   iterator begin() const { return iterator(this); }
   iterator end() const { return iterator(); }
+  size_t size() const { return levels*2 + 1; };
 
 private:
   inline NumericType end_point() const { return (levels * stddev) + mean; }
@@ -132,7 +135,22 @@ public:
     , max(max)
 	, step_size(Step::step_size(min,max,levels))
     , levels(levels)
-  {}
+  {
+      assert(min < max &&
+             "the max should be greater than the min");
+      assert(Step::valid(step_size) &&
+             "the iterator increment should be valid");
+  }
+
+  NumericType get_max() const {
+	  return max;
+  }
+  NumericType get_min() const {
+	  return min;
+  }
+  NumericType get_step_size() const {
+	  return step_size();
+  }
 
   using value_type = NumericType;
   class iterator
@@ -152,15 +170,12 @@ public:
       : value(factor->min)
       , factor(factor)
     {
-      assert(factor->min < factor->max &&
-             "the max should be greater than the min");
-      assert(Step::valid(factor->step_size) &&
-             "the iterator increment should be valid");
     }
     bool operator==(iterator const& it) const
     {
-      return (value == it.value && factor == it.factor) ||
-             (is_endptr() && it.is_endptr());
+	  auto e1 = is_endptr();
+	  auto e2 = it.is_endptr();
+      return (e1 && e2) || (!e1 && !e2 && value == it.value && factor == it.factor);
     }
     bool operator!=(iterator const& it) const { return !(*this == it); }
     reference operator*() { return value; }
@@ -194,6 +209,7 @@ public:
 
   iterator begin() const { return iterator(this); }
   iterator end() const { return iterator(); }
+  size_t size() const { return levels;}
 
 private:
   NumericType min, max, step_size;
@@ -227,21 +243,20 @@ RandomFactor(RandomNumberGenerator gen, size_t levels)
   ->RandomFactor<decltype(std::declval<RandomNumberGenerator>()()),
                  RandomNumberGenerator>;
 
-template <class Transform, class ForwardIt>
+template <class Transform, class Container>
 class TransformFactor
 {
 private:
-  ForwardIt begin_it, end_it;
+  Container container;
   Transform func;
 
 public:
-  TransformFactor(ForwardIt begin_it, ForwardIt end_it, Transform&& func)
-    : begin_it(begin_it)
-    , end_it(end_it)
+  TransformFactor(Container container, Transform&& func)
+    : container(container)
     , func(std::forward<Transform>(func))
   {}
   using value_type = decltype(
-    func(std::declval<typename std::iterator_traits<ForwardIt>::reference>()));
+    func(std::declval<typename std::iterator_traits<typename Container::iterator>::reference>()));
   class iterator
   {
   public:
@@ -249,11 +264,11 @@ public:
     using reference = value_type&;
     using pointer = value_type*;
     using difference_type = std::ptrdiff_t;
-    using iterator_category = std::forward_iterator_tag;
+    using iterator_category = typename std::iterator_traits<typename Container::iterator>::iterator_category;
 
-    iterator(TransformFactor* factor)
+    iterator(TransformFactor const* factor)
       : factor(factor)
-      , current(factor->begin_it)
+      , current(std::begin(factor->container))
       , value(factor->func(*current))
     {}
     iterator()
@@ -265,7 +280,7 @@ public:
     iterator& operator++()
     {
       current++;
-      if (current != factor->end_it) {
+      if (current != std::end(factor->container)) {
         value = factor->func(*current);
       }
       return *this;
@@ -276,26 +291,55 @@ public:
       ++(*this);
       return tmp;
     }
+
+	iterator operator+(difference_type n) {
+		iterator tmp = *this;
+		tmp+=n;
+		return tmp;
+	}
+	iterator& operator+=(difference_type n) {
+		current += n;
+		if(current != std::end(factor->container)) {
+			value = factor->func(*current);
+		}
+		return *this;
+	}
+	iterator& operator-=(difference_type n) {*this += (-n); return *this;}
+	iterator operator-(difference_type n) { return *this + (-n); }
+	difference_type operator-(iterator const& it) {
+		return current - it.current;
+	}
+	value_type operator[](size_t n) const {
+		return factor->func(*(current+n));
+	}
+
     reference operator*() { return value; }
     reference operator->() { return value; }
     bool operator==(iterator const& it) const
     {
-      return (is_endptr() && it.is_endptr()) ||
-             (factor == it.factor && current == it.current);
+		auto e1 = is_endptr();
+		auto e2 = it.is_endptr();
+      return (e1 && e2) ||
+             (!e1 && !e2 && factor == it.factor && current == it.current);
     }
-    bool operator!=(iterator const& it) { return !(*this == it); }
+    bool operator!=(iterator const& it) const { return !(*this == it); }
+	bool operator<(iterator const& it) const { return current < it.current;}
+	bool operator>(iterator const& it) const { return it.current < current;}
+	bool operator<=(iterator const& it) const {return !(*this < it);}
+	bool operator>=(iterator const& it) const {return !( it< *this );}
 
   private:
 	bool is_endptr() const {
-		return factor == nullptr || current == factor->end_it;
+		return factor == nullptr || current == std::end(factor->container);
 	}
-    TransformFactor* factor;
-    ForwardIt current;
+    TransformFactor const* factor;
+	typename Container::iterator current;
     value_type value;
   };
 
-  iterator begin() { return iterator(this); }
-  iterator end() { return iterator(); }
+  iterator begin() const { return iterator(this); }
+  iterator end() const { return iterator(); }
+  size_t size() const { return std::size(container); }
 };
 
 } // namespace ParameterSweep

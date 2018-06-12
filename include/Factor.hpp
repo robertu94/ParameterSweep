@@ -41,7 +41,7 @@ public:
       , index()
       , value()
     {}
-    iterator(Factor* factor)
+    iterator(Factor const* factor)
       : factor(factor)
       , end_flag(false)
       , index()
@@ -89,16 +89,16 @@ public:
     bool operator!=(iterator const& it) const { return !(*this == it); }
 
   private:
-    Factor* factor;
+    Factor const* factor;
     bool end_flag;
     index_type index;
     value_type value;
   };
   using value_type = typename iterator::value_type;
 
-  iterator begin() { return iterator(this); }
+  iterator begin() const { return iterator(this); }
 
-  iterator end() { return iterator(); }
+  iterator end() const { return iterator(); }
 
   size_t size() const { 
 	  auto sizes = tuple_transform([](auto& container) {return std::size(container);}, containers);
@@ -109,7 +109,7 @@ public:
 private:
   std::tuple<Containers...> containers;
 
-  void next_index(typename iterator::index_type& index, bool& end_flag) {
+  void next_index(typename iterator::index_type& index, bool& end_flag) const {
 	  size_t size_current_container;
 	  apply_to_elm([&size_current_container](auto& container){ size_current_container = std::size(container); }, containers, index.container_index);
 	  if(++index.element_index >= size_current_container)
@@ -124,7 +124,7 @@ private:
 	  }
   }
 
-  void get_value(typename iterator::index_type& index, typename iterator::reference value)
+  void get_value(typename iterator::index_type& index, typename iterator::reference value) const
   {
 	  size_t& container_index = index.container_index;
 	  size_t& element_index = index.element_index;

@@ -86,6 +86,30 @@ TEST_F(ParameterSweepBuilder, DebugPrinting)
   }
 }
 
+TEST_F(ParameterSweepBuilder, DebugIteratorPrinter)
+{
+	example.set_replicants(2);
+	struct {
+		iterator it;
+		std::string expected;
+	} test_cases[] = {
+		/*0*/{std::begin(example), std::string("Iterator < builder=(non-null) replicant=0 indices={0, 0, 0}>")},
+		/*1*/{std::next(std::begin(example)), std::string("Iterator < builder=(non-null) replicant=1 indices={0, 0, 0}>")},
+		/*2*/{((++(std::begin(example)))), std::string("Iterator < builder=(non-null) replicant=1 indices={0, 0, 0}>")},
+		/*3*/{(++(++(std::begin(example)))), std::string("Iterator < builder=(non-null) replicant=0 indices={1, 1, 0}>")},
+		/*4*/{(std::begin(example)+2), std::string("Iterator < builder=(non-null) replicant=0 indices={1, 1, 0}>")},
+		/*5*/{std::end(example), std::string("Iterator < builder=(non-null) END>")},
+		/*6*/{iterator(), std::string("Iterator < builder=(null) END>")},
+	};
+	auto i = 0;
+	for(auto const& test_case: test_cases) {
+		std::stringstream ss;
+		ss << test_case.it;
+		EXPECT_EQ(test_case.expected, ss.str()) << "test case " << i << " failed";
+		++i;
+	}
+}
+
 TEST_F(ParameterSweepBuilder, Size)
 {
 	auto get_sizes = [](auto& builder)
@@ -125,5 +149,33 @@ TEST_F(ParameterSweepBuilder, Size)
 		EXPECT_EQ(0,std::size(empty));
 
 	}
+}
+
+TEST_F(ParameterSweepBuilder, RandomAccess)
+{
+	example.set_replicants(3);
+
+	/*
+	//count up to the end
+	auto count = std::size(example);
+	auto it = std::begin(example);
+	auto end_ptr_expected = std::end(example);
+	for(size_t i = 0; i < count; ++i, ++it){
+		auto to_end = count - i;
+		auto end_ptr = it + to_end;
+		EXPECT_EQ(end_ptr_expected, end_ptr);
+	}
+
+
+	//count down from the end
+	auto beg_ptr_expected = std::begin(example);
+	it = std::end(example);
+	for(size_t i = 0; i < count; ++it, ++i){
+		auto to_beginning = count - i;
+		auto beg_ptr  = it - to_beginning;
+		EXPECT_EQ(beg_ptr_expected, beg_ptr);
+	}
+	*/
+
 }
 

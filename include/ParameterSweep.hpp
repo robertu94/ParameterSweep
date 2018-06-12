@@ -43,12 +43,12 @@ public:
     using value_type = std::tuple<typename Factors::value_type...>;
     using reference = value_type&;
     using pointer = value_type*;
-    using iterator_category = std::forward_iterator_tag;
+    using iterator_category = std::random_access_iterator_tag;
 	using index_type = std::array<size_t, std::tuple_size<value_type>::value>;
 
-    iterator(Builder const* builder):
+    iterator(Builder const* builder, bool end_flag):
 		builder(builder),
-		end_flag(false),
+		end_flag(end_flag),
 		replicant(0),
 		indices(),
 		value(builder->get_value_at_index(indices))
@@ -78,11 +78,26 @@ public:
     // equality comparable
     bool operator==(iterator const& it) const {
 		//make all end pointers equal
-		return end_flag == it.end_flag || ((builder == it.builder) && \
-			   (value == it.value) && \
-			   indices == it.indices);
+		auto e1 = is_endptr();
+		auto e2 = it.is_endptr();
+		return (e1 && e2) || ( !e1 && !e2 && indices ==  it.indices);
 	}
+
 	bool operator!=(iterator const& it) const { return ! (*this == it); }
+	bool operator<(iterator const& it) const {
+		auto const* cmp = get_real_builder_or_null(it);
+		if(cmp != nullptr){
+			auto lhs = cmp->to_difference_type(indices, replicant, end_flag);
+			auto rhs = cmp->to_difference_type(it.indices, it.replicant, it.end_flag);
+			return lhs < rhs;
+		} else {
+			//two end pointers are equal to each other not less than
+			return false;
+		}
+	}
+	bool operator>(iterator const& it) const { return it < *this; }
+	bool operator<=(iterator const& it) const { return (*this < it) || (*this == it); }
+	bool operator>=(iterator const& it) const { return (it < *this) || (*this == it); }
 
     // iterator
     reference operator->(){
@@ -97,7 +112,10 @@ public:
 		if(replicant >= builder->replicants){
 			replicant = 0;
 			builder->next_index(indices, end_flag);
+			if(!end_flag)
+			{
 			value = builder->get_value_at_index(indices);
+			}
 		}
 		return *this;
 	}
@@ -106,6 +124,58 @@ public:
 		++(*this);
 		return tmp;
 	}
+	iterator operator-(difference_type n) const {
+		return (*this) + (-n);
+	}
+	difference_type operator-(iterator const& it) const { 
+		auto const*cmp = get_real_builder_or_null(it);
+		if(cmp != nullptr){
+			auto lhs = cmp->to_difference_type(indices, replicant, end_flag);
+			auto rhs = cmp->to_difference_type(it.indices, it.replicant, it.end_flag);
+			return lhs - rhs;
+		} else { 
+			//if both pointers have no builder, they are both end pointers and thus are 0 away
+			return 0;
+		}
+	}
+	iterator& operator-=(difference_type n) {
+		return (*this) += (-n);
+	}
+	iterator operator+(difference_type n) const {
+		iterator tmp = *this;
+		tmp += n;
+		return tmp;
+	}
+	iterator& operator+=(difference_type n) {
+		auto pos = builder->to_difference_type(indices, replicant, end_flag);
+		builder->from_difference_type(pos+n, indices, replicant, end_flag);
+		if(!end_flag)
+		{
+			value = builder->get_value_at_index(indices); 
+		}
+		return *this;
+	}
+
+	friend std::ostream&
+	operator<<(std::ostream& out, iterator const& it) {
+		out << "Iterator < builder=" << ((it.builder==nullptr)?("(null)"):("(non-null)")) << " ";
+		if(it.end_flag) {
+			return out << "END>";
+		} else {
+			out << "replicant=" << it.replicant << " ";
+			out << "indices={";
+			auto idx_it = std::begin(it.indices);
+			if (idx_it != std::end(it.indices)) {
+				out << *idx_it;
+				while(idx_it != std::end(it.indices))
+				{
+					out << ", " << *idx_it;
+					++idx_it;
+				}
+			}
+			return out << "}>";
+		}
+	}
 
   private:
     Builder const* builder;
@@ -113,13 +183,33 @@ public:
 	size_t replicant;
 	index_type indices;
 	value_type value;
+
+	bool is_endptr() const {
+		return end_flag || builder == nullptr;
+	}
+
+	Builder const* get_real_builder_or_null(iterator const& it) const {
+		Builder const* cmp;
+		if (builder == nullptr){
+			if(it.builder == nullptr){
+				assert(end_flag && it.end_flag && "iterators should be end iterators if their builder is set to nullptr");
+				return nullptr;
+			} else {
+				cmp = it.builder;
+			}
+		} else {
+			cmp = builder;
+		}
+		return cmp;
+
+	}
   };
 
   using value_type = typename iterator::value_type;
 
-  iterator begin() const { return {this}; }
+  iterator begin() const { return {this, false}; }
 
-  iterator end() const { return {}; }
+  iterator end() const { return {this, true}; }
 
   size_t size() const
   {
@@ -179,6 +269,57 @@ private:
   size_t replicants;
   std::tuple<Factors...> factors;
 
+  typename iterator::difference_type to_difference_type(typename iterator::index_type const& index, size_t const& replicant, bool const end_flag) const {
+	  typename iterator::difference_type idx =0;
+	  typename iterator::index_type boundries;
+
+	  auto dim_tuple = tuple_transform([](auto&& factor){
+			  return std::size(factor);
+	  }, factors);
+	  auto dim = tuple_to_array<size_t>(dim_tuple);
+
+	  boundries[0] = replicants;
+	  for (size_t i = 1; i < index.size(); ++i) {
+	  	boundries[i] = dim[i-1] * boundries[i-1];
+	  }
+
+	  if(!end_flag){
+		  for(size_t i = 0; i < index.size(); ++i) {
+			  idx += index[i]* boundries[i];
+		  }
+		  idx+=replicant;
+	  } else {
+		  idx = dim.back() * boundries.back();
+	  }
+
+	  return idx;
+  }
+
+  void from_difference_type(typename iterator::difference_type d, typename iterator::index_type &index, size_t& replicant, bool& end_flag) const { 
+	  typename iterator::index_type boundries;
+
+	  auto dim_tuple = tuple_transform([](auto&& factor){
+			  return std::size(factor);
+	  }, factors);
+	  auto dim = tuple_to_array<size_t>(dim_tuple);
+
+	  boundries[0] = replicants;
+	  for (size_t i = 1; i < index.size(); ++i) {
+	  	boundries[i] = dim[i-1] * boundries[i-1];
+	  }
+	  if(d < boundries.back() * dim.back()) {
+		  for(size_t i = index.size(); i-- > 0;){
+			  index[i] = d / boundries[i];
+			  d -= (index[i] * boundries[i]);
+		  }
+		  replicant = d;
+	  } else {
+		  end_flag = true;
+		  std::fill(std::begin(index), std::end(index), 0);
+		  replicant = 0;
+	  }
+  }
+  
   void next_index(typename iterator::index_type& index, bool& end_flag) const
   {
 	  auto dim_tuple = tuple_transform([](auto&& factor){
@@ -234,6 +375,7 @@ operator<<(std::ostream& out, Builder<Factors...> const& builder)
 {
   return builder << out;
 }
+
 
 template <class... Factors>
 Builder(Factors... factors)->Builder<Factors...>;
