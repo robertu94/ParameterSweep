@@ -1,4 +1,4 @@
-gtest_dep = dependency('gtest', main: 'true', fallback: ['gtest', 'gtest_dep'])
+gtest_dep = dependency('gtest', main: 'true', fallback: ['gtest', 'gtest_main_dep'])
 
 test_inc = include_directories('include')
 
