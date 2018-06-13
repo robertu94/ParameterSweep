@@ -285,6 +285,20 @@ public:
       }
       return *this;
     }
+    iterator& operator--()
+    {
+      current--;
+      if (current != std::end(factor->container)) {
+        value = factor->func(*current);
+      }
+      return *this;
+    }
+    iterator operator--(int)
+    {
+      iterator tmp = *this;
+      --(*this);
+      return tmp;
+    }
     iterator operator++(int)
     {
       iterator tmp = *this;

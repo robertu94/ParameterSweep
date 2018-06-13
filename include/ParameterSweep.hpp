@@ -119,6 +119,14 @@ public:
 		}
 		return *this;
 	}
+	iterator& operator--() {
+		return *this -= 1;
+	}
+	iterator operator--(int){
+		iterator tmp = *this;
+		--(*this);
+		return tmp;
+	}
     iterator operator++(int){
 		iterator tmp = *this;
 		++(*this);
