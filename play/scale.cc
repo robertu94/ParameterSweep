@@ -1,6 +1,7 @@
 /*
  * some code to prototype computing offsets
  */
+#include <array>
 #include <iostream>
 #include <functional>
 #include <numeric>
