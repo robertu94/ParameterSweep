@@ -8,6 +8,9 @@ class RandomNumberGenerator
 	public:
 	using result_type = T;
 	virtual T operator ()()=0;
+	virtual void seed(T value)=0;
+	virtual void seed(size_t value)=0;
+	virtual void seed(std::seed_seq seq)=0;
 	virtual ~RandomNumberGenerator()=default;
 };
 
@@ -23,6 +26,9 @@ class Distribution: public RandomNumberGenerator<typename RandomNumberDistributi
 	Distribution(RandomNumberEngine gen, RandomNumberDistribution dist): dist(dist), gen(gen) {}
 
 	typename RandomNumberDistribution::result_type operator()() override { return dist(gen); }
+	void seed(typename RandomNumberDistribution::result_type value) override { return gen.seed(value); }
+	void seed(size_t value) override { return gen.seed(value); }
+	void seed(std::seed_seq seq) override { return gen.seed(seq); }
 
 };
 
