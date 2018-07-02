@@ -191,6 +191,10 @@ public:
       }
     }
 
+	difference_type get_id() const {
+		return builder->to_difference_type(indices, replicant, end_flag);
+	}
+
   private:
     Builder const* builder;
     bool end_flag;
