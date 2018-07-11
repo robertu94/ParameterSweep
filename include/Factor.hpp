@@ -26,6 +26,7 @@ public:
       typename std::tuple_element<0, std::tuple<Containers...>>::type::value_type,
       std::tuple<>>;
     using reference = value_type&;
+	using const_reference = value_type const&;
     using pointer = value_type*;
     using iterator_category = std::forward_iterator_tag;
 	struct index_type {
@@ -59,8 +60,10 @@ public:
     }
 
     reference operator->() { return value; }
+    const_reference operator->() const { return value; }
 
     reference operator*() { return value; }
+    const_reference operator*() const { return value; }
 
     iterator& operator++()
     {

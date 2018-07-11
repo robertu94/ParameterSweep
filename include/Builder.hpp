@@ -41,6 +41,7 @@ public:
     using difference_type = std::ptrdiff_t;
     using value_type = std::tuple<typename Factors::value_type...>;
     using reference = value_type&;
+    using const_reference = value_type const&;
     using pointer = value_type*;
     using iterator_category = std::random_access_iterator_tag;
     using index_type = std::array<size_t, std::tuple_size<value_type>::value>;
@@ -111,6 +112,8 @@ public:
     // iterator
     reference operator->() { return value; }
     reference operator*() { return value; }
+    const_reference operator->() const { return value; }
+    const_reference operator*() const { return value; }
     iterator& operator++()
     {
       assert(builder != nullptr &&
