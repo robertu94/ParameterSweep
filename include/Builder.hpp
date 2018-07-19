@@ -331,7 +331,7 @@ private:
     for (size_t i = 1; i < index.size(); ++i) {
       boundries[i] = dim[i - 1] * boundries[i - 1];
     }
-    if (d < boundries.back() * dim.back()) {
+    if (static_cast<size_t>(d) < boundries.back() * dim.back()) {
       for (size_t i = index.size(); i-- > 0;) {
         index[i] = d / boundries[i];
         d -= (index[i] * boundries[i]);

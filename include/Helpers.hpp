@@ -255,12 +255,11 @@ public:
     : container(container)
     , func(std::forward<Transform>(func))
   {}
-  using value_type = decltype(
-    func(std::declval<typename std::iterator_traits<typename Container::iterator>::reference>()));
   class iterator
   {
   public:
-    using value_type = value_type;
+  using value_type = decltype(
+    func(std::declval<typename std::iterator_traits<typename Container::iterator>::reference>()));
     using reference = value_type&;
     using pointer = value_type*;
     using difference_type = std::ptrdiff_t;
@@ -350,6 +349,7 @@ public:
 	typename Container::iterator current;
     value_type value;
   };
+  using value_type = typename iterator::value_type;
 
   iterator begin() const { return iterator(this); }
   iterator end() const { return iterator(); }
