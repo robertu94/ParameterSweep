@@ -337,6 +337,7 @@ private:
         d -= (index[i] * boundries[i]);
       }
       replicant = d;
+			end_flag = false;
     } else {
       end_flag = true;
       std::fill(std::begin(index), std::end(index), 0);

@@ -19,7 +19,7 @@ TEST(distributions, seeding) {
 	std::vector<float> actual(vec_size);
 	auto dist_sp = make_dist_from_tuple<std::normal_distribution<float>>(std::make_tuple(10,3));
 	RandomNumberGenerator<float>& dist_from_tup = *dist_sp;
-	for (int i = 0; i < repetitions; ++i) {
+	for (size_t i = 0; i < repetitions; ++i) {
 		dist_from_tup.seed(seed);
 		std::generate(std::begin(actual), std::end(actual), [&dist_from_tup](){return dist_from_tup();});
 		EXPECT_EQ(expected, actual);

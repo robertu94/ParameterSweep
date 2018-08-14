@@ -20,8 +20,8 @@ class ParameterSweepBuilder: public ::testing::Test
 	}
 
 	Builder<> empty{};
-	std::vector<int> i = {1,2,3};
-	std::vector<float> f = {1.,2.,3.};
+	std::vector<int> i = {1,2,3,4,5,6,7};
+	std::vector<float> f = {1.,2.,3.,4.,5.};
 	Builder<std::vector<int>,std::vector<float>> example = {i,f};
 
 	static constexpr auto all_designs = {Design::FullFactorial, Design::OneAtATime};
@@ -110,72 +110,156 @@ TEST_F(ParameterSweepBuilder, DebugIteratorPrinter)
 	}
 }
 
-TEST_F(ParameterSweepBuilder, Size)
+namespace {
+
+template<class T>
+std::tuple<size_t,size_t> get_sizes(T& builder)
 {
-	auto get_sizes = [](auto& builder)
-	{
-		size_t count = std::count_if(std::begin(builder), std::end(builder), [](auto const&){return true;});
-		std::set<typename decltype(std::begin(builder))::value_type> unique_cases(std::begin(builder), std::end(builder));
-		return std::make_tuple(count, unique_cases.size());
-	};
+	size_t count = std::count_if(std::begin(builder), std::end(builder), [](auto const&){return true;});
+	std::set<typename decltype(std::begin(builder))::value_type> unique_cases(std::begin(builder), std::end(builder));
+	return std::make_tuple(count, unique_cases.size());
+}
 
-	{
-		auto [count, unique_count] = get_sizes(example);
-		EXPECT_EQ(3*3*30, example.size());
-		EXPECT_EQ(3*3*30, std::size(example));
-		EXPECT_EQ(3*3, unique_count);
-		EXPECT_EQ(3*3*30, count);
-	}
 
-	{
-		example.set_design(Design::OneAtATime);
-		auto [count, unique_count] = get_sizes(example);
-		EXPECT_EQ((3+3-1)*30, example.size());
-		EXPECT_EQ((3+3-1)*30, std::size(example));
-		EXPECT_EQ(3+3-1, unique_count);
-		EXPECT_EQ((3+3-1)*30, count);
-	}
+}
 
+TEST_F(ParameterSweepBuilder, SizeFullFactorial)
+{
+	auto [count, unique_count] = get_sizes(example);
+	EXPECT_EQ(5*7*30, example.size());
+	EXPECT_EQ(5*7*30, std::size(example));
+	EXPECT_EQ(5*7, unique_count);
+	EXPECT_EQ(5*7*30, count);
+}
+TEST_F(ParameterSweepBuilder, SizeOneAtATime)
+{
+	example.set_design(Design::OneAtATime);
+	auto [count, unique_count] = get_sizes(example);
+	EXPECT_EQ((5+7-1)*30, example.size());
+	EXPECT_EQ((5+7-1)*30, std::size(example));
+	EXPECT_EQ(5+7-1, unique_count);
+	EXPECT_EQ((5+7-1)*30, count);
+}
+
+TEST_F(ParameterSweepBuilder, EmptySize)
+{
 	for(auto const& design : all_designs)
 	{
 		empty.set_design(design);
-		//size_t count = 0;
-		//for(auto& config: builder)
-		//{
-		//	count++;
-		//}
-		//ASSERT_EQ(0,count);
 		EXPECT_EQ(0,empty.size());
 		EXPECT_EQ(0,std::size(empty));
 
 	}
 }
 
-TEST_F(ParameterSweepBuilder, RandomAccess)
-{
-	example.set_replicants(3);
-
-	/*
-	//count up to the end
-	auto count = std::size(example);
-	auto it = std::begin(example);
-	auto end_ptr_expected = std::end(example);
-	for(size_t i = 0; i < count; ++i, ++it){
-		auto to_end = count - i;
-		auto end_ptr = it + to_end;
-		EXPECT_EQ(end_ptr_expected, end_ptr);
+namespace {
+	template<class T>
+	typename std::iterator_traits<T>::difference_type 
+	safe_incr(T& it, T end, typename std::iterator_traits<T>::difference_type n = {1}) {
+		typename std::iterator_traits<T>::difference_type ret{0};
+		while(ret < n && it != end) {
+			it++;
+			ret++;
+		}
+		return ret;
+	}
+	template<class T>
+	typename std::iterator_traits<T>::difference_type 
+	safe_decr(T& it, T end, typename std::iterator_traits<T>::difference_type n = {1}) {
+		typename std::iterator_traits<T>::difference_type ret{0};
+		while(ret < n && it != end) {
+			it--;
+			ret++;
+		}
+		return ret;
 	}
 
 
-	//count down from the end
-	auto beg_ptr_expected = std::begin(example);
-	it = std::end(example);
-	for(size_t i = 0; i < count; ++it, ++i){
-		auto to_beginning = count - i;
-		auto beg_ptr  = it - to_beginning;
-		EXPECT_EQ(beg_ptr_expected, beg_ptr);
+	template<class T>
+	typename std::iterator_traits<T>::difference_type
+	safe_raccess(T& it, T end, typename std::iterator_traits<T>::difference_type n = {1}) {
+		auto distance = end-it;
+		typename std::iterator_traits<T>::difference_type ret;
+		if(it < end)
+			ret = std::min(distance, n);
+		else
+			ret = std::max(distance, n);
+		it += ret;
+		return ret;
 	}
-	*/
 
+	
 }
 
+TEST_F(ParameterSweepBuilder, RandomAccessCountUp)
+{
+	example.set_replicants(3);
+	auto count = std::size(example);
+	auto end = std::end(example);
+
+	for(size_t step = 1; step < count; step++)
+	{
+		auto beg_raccess = std::begin(example);
+		for(size_t i = 0; i < count; i+=step)
+		{
+			EXPECT_EQ(std::begin(example)+i, beg_raccess);
+			EXPECT_EQ(i, beg_raccess.get_id());
+			safe_raccess(beg_raccess, end, step);
+		}
+	}
+}
+
+TEST_F(ParameterSweepBuilder, IncrementCountUp)
+{
+	example.set_replicants(3);
+	auto count = std::size(example);
+	auto end = std::end(example);
+
+	for(size_t step = 1; step < count; step++)
+	{
+		auto beg_incr = std::begin(example);
+		for(size_t i = 0; i < count; i+=step)
+		{
+			EXPECT_EQ(i, beg_incr.get_id());
+			safe_incr(beg_incr, end, step);
+		}
+	}
+}
+
+TEST_F(ParameterSweepBuilder, RandomAccessCountDown)
+{
+	example.set_replicants(3);
+	auto count = std::size(example);
+	auto beg = std::begin(example);
+
+	for(size_t step = 1; step < count; step++)
+	{
+		auto end_raccess = std::end(example);
+		for(size_t i = 0; i < count; i+=step)
+		{
+			EXPECT_EQ(std::end(example)-i, end_raccess);
+			EXPECT_EQ(count-i, end_raccess.get_id());
+			safe_raccess(end_raccess, beg, -step);
+		}
+	}
+
+}
+TEST_F(ParameterSweepBuilder, IncrementCountDown)
+{
+	example.set_replicants(3);
+	auto count = std::size(example);
+	auto beg = std::begin(example);
+
+	for(size_t step = 1; step < count; step++)
+	{
+		std::cout << "starting step " << step << std::endl;
+		auto end_incr = std::end(example);
+		for(size_t i = 0; i < count; i+=step)
+		{
+			EXPECT_EQ(std::end(example)-i, end_incr);
+			EXPECT_EQ(count-i, end_incr.get_id());
+			safe_decr(end_incr, beg, step);
+		}
+	}
+
+}
