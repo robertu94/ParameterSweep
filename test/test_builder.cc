@@ -153,38 +153,18 @@ TEST_F(ParameterSweepBuilder, EmptySize)
 }
 
 namespace {
-	template<class T>
-	typename std::iterator_traits<T>::difference_type 
-	safe_incr(T& it, T end, typename std::iterator_traits<T>::difference_type n = {1}) {
-		typename std::iterator_traits<T>::difference_type ret{0};
-		while(ret < n && it != end) {
-			it++;
-			ret++;
-		}
-		return ret;
-	}
-	template<class T>
-	typename std::iterator_traits<T>::difference_type 
-	safe_decr(T& it, T end, typename std::iterator_traits<T>::difference_type n = {1}) {
-		typename std::iterator_traits<T>::difference_type ret{0};
-		while(ret < n && it != end) {
-			it--;
-			ret++;
-		}
-		return ret;
-	}
 
 
 	template<class T>
 	typename std::iterator_traits<T>::difference_type
-	safe_raccess(T& it, T end, typename std::iterator_traits<T>::difference_type n = {1}) {
-		auto distance = end-it;
+	safe_advance(T& it, T end, typename std::iterator_traits<T>::difference_type n = {1}) {
+		auto distance = std::distance(it, end);
 		typename std::iterator_traits<T>::difference_type ret;
 		if(it < end)
 			ret = std::min(distance, n);
 		else
 			ret = std::max(distance, n);
-		it += ret;
+		std::advance(it, ret);
 		return ret;
 	}
 
@@ -204,7 +184,7 @@ TEST_F(ParameterSweepBuilder, RandomAccessCountUp)
 		{
 			EXPECT_EQ(std::begin(example)+i, beg_raccess);
 			EXPECT_EQ(i, beg_raccess.get_id());
-			safe_raccess(beg_raccess, end, step);
+			safe_advance(beg_raccess, end, step);
 		}
 	}
 }
@@ -221,7 +201,7 @@ TEST_F(ParameterSweepBuilder, IncrementCountUp)
 		for(size_t i = 0; i < count; i+=step)
 		{
 			EXPECT_EQ(i, beg_incr.get_id());
-			safe_incr(beg_incr, end, step);
+			safe_advance(beg_incr, end, step);
 		}
 	}
 }
@@ -239,7 +219,7 @@ TEST_F(ParameterSweepBuilder, RandomAccessCountDown)
 		{
 			EXPECT_EQ(std::end(example)-i, end_raccess);
 			EXPECT_EQ(count-i, end_raccess.get_id());
-			safe_raccess(end_raccess, beg, -step);
+			safe_advance(end_raccess, beg, -step);
 		}
 	}
 
@@ -252,13 +232,12 @@ TEST_F(ParameterSweepBuilder, IncrementCountDown)
 
 	for(size_t step = 1; step < count; step++)
 	{
-		std::cout << "starting step " << step << std::endl;
 		auto end_incr = std::end(example);
 		for(size_t i = 0; i < count; i+=step)
 		{
 			EXPECT_EQ(std::end(example)-i, end_incr);
 			EXPECT_EQ(count-i, end_incr.get_id());
-			safe_decr(end_incr, beg, step);
+			safe_advance(end_incr, beg, -step);
 		}
 	}
 
