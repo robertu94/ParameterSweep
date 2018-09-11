@@ -198,6 +198,10 @@ public:
 		return builder->to_difference_type(indices, replicant, end_flag);
 	}
 
+	index_type get_indices() const {
+		return indices;
+	}
+
   private:
     Builder const* builder;
     bool end_flag;
@@ -231,6 +235,13 @@ public:
   iterator begin() const { return { this, false }; }
 
   iterator end() const { return { this, true }; }
+
+	auto levels() const {
+    auto dim_tuple =
+      tuple_transform([](auto&& factor) { return std::size(factor); }, factors);
+    auto dim = tuple_to_array<size_t>(dim_tuple);
+		return dim;
+	}
 
   size_t size() const
   {
@@ -296,9 +307,7 @@ private:
     typename iterator::difference_type idx = 0;
     typename iterator::index_type boundries;
 
-    auto dim_tuple =
-      tuple_transform([](auto&& factor) { return std::size(factor); }, factors);
-    auto dim = tuple_to_array<size_t>(dim_tuple);
+    auto dim = levels();
 
     boundries[0] = replicants;
     for (size_t i = 1; i < index.size(); ++i) {
