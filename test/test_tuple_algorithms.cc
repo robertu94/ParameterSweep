@@ -1,4 +1,5 @@
 #include <random>
+#include <string>
 #include "tuple_algorithms.hpp"
 
 #include <gtest/gtest.h>
@@ -110,6 +111,23 @@ TEST(tuple_algorithms, get_runtime)
 		EXPECT_EQ(a[i], ret);
 	}
 
+
+
+}
+
+TEST(tuple_algorithms, transform_with_overload)
+{
+	using namespace std::string_literals;
+	std::tuple<int,float,std::string> expected = std::make_tuple(2,8.f,"asdfasdf"s);
+	std::tuple<int,float,std::string> initial = std::make_tuple(1,2.f,"asdf"s);
+
+	auto result = tuple_transform(overloaded{
+				[](int i) { return i*2; },
+				[](float f) { return f*4; },
+				[](std::string const& s) {return s + s;}
+				}, initial);
+
+	ASSERT_EQ(expected, result);
 
 
 }

@@ -85,3 +85,10 @@ void get_runtime(std::tuple<Types...> const& t, size_t index, Type& elm)
 {
 	apply_to_elm_impl([&elm](auto&& i){elm = i;}, t, index, std::index_sequence_for<Types...>{});
 }
+
+
+//copied exactly from https://en.cppreference.com/mwiki/index.php?title=cpp/utility/variant/visit&oldid=106389
+//used under CC-BY-SA 3.0
+template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+

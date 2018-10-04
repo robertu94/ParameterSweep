@@ -242,3 +242,26 @@ TEST_F(ParameterSweepBuilder, IncrementCountDown)
 	}
 
 }
+
+TEST_F(ParameterSweepBuilder, toParameters)
+{
+	example.set_replicants(3);
+	{
+		auto it = std::begin(example);
+		auto params = it.get_parameters();
+		std::vector<size_t> expected{0,0};
+		EXPECT_EQ(expected, params);
+	}
+
+	Builder test_nested(i,example);
+	{
+		auto it = std::begin(test_nested);
+		auto params = it.get_parameters();
+		std::vector<size_t> expected{0,0,0};
+		EXPECT_EQ(expected, params);
+	}
+
+
+
+
+}

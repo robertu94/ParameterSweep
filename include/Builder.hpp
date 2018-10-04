@@ -4,7 +4,9 @@
 #include <iostream>
 #include <iterator>
 #include <numeric>
+#include <vector>
 #include <tuple>
+#include <type_traits>
 #include <tuple_algorithms.hpp>
 #include <utility>
 
@@ -24,6 +26,18 @@ enum class Design
 };
 std::ostream& operator<<(std::ostream&, Design const&);
 
+template <class T>
+struct is_builder{
+	private:
+		template<class U>
+			static auto test(int) -> decltype(std::declval<U>().get_parameters(0ull), std::true_type{});
+		template<class>
+			static std::false_type test(...);
+	public:
+		static constexpr bool value = std::is_same_v<decltype(test<T>(0)), std::true_type>;
+};
+template <class T> constexpr bool is_builder_v = is_builder<T>::value;
+
 template <class... Factors>
 class Builder
 {
@@ -38,6 +52,7 @@ public:
   class iterator
   {
   public:
+		using factor_type = std::tuple<Factors...>;
     using difference_type = std::ptrdiff_t;
     using value_type = std::tuple<typename Factors::value_type...>;
     using reference = value_type&;
@@ -110,9 +125,9 @@ public:
     }
 
     // iterator
-    reference operator->() { return value; }
+    pointer operator->() { return &value; }
     reference operator*() { return value; }
-    const_reference operator->() const { return value; }
+    const pointer operator->() const { return &value; }
     const_reference operator*() const { return value; }
     iterator& operator++()
     {
@@ -200,6 +215,41 @@ public:
 
 	index_type get_indices() const {
 		return indices;
+	}
+
+	auto const& get_factors() const {
+		return builder->get_factors();
+	}
+
+	
+
+	std::vector<size_t> get_parameters() const {
+		std::vector<size_t> parameters;
+		auto const& factors = builder->get_factors();
+		auto const& indices_tup = array_to_tuple(indices);
+		
+
+	auto params_t = tuple_transform([](auto const& factor, auto const& index) -> std::vector<size_t>
+			{
+				if constexpr (is_builder_v<std::decay_t<decltype(factor)>>)
+				{
+					return factor.get_parameters(index);
+				} else {
+					std::vector<size_t> index_v{index};
+					return index_v;
+				}
+			}, factors, indices_tup);
+
+	auto params_a = tuple_to_array<std::vector<size_t>>(params_t);
+
+	std::vector<size_t> params_v;
+	for (auto const& param : params_a) {
+			for (auto const& entry : param) {
+				params_v.push_back(entry);
+			}
+	}
+
+		return params_v;
 	}
 
   private:
@@ -293,6 +343,14 @@ public:
                << ", factors: ("
                << std::tuple_size<std::tuple<Factors...>>::value << ")";
   }
+
+	auto const& get_factors() const {
+		return factors;
+	}
+
+	auto get_parameters(size_t index) const {
+		return std::next(begin(), index).get_parameters();
+	}
 
 private:
   Order order;
