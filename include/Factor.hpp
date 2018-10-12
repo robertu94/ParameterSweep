@@ -216,8 +216,7 @@ public:
     auto params_t = tuple_transform(
       [](auto const& index, auto const& container) -> std::vector<size_t> {
         if constexpr (is_builder_v<std::decay_t<decltype(container)>>) {
-          auto it = std::next(std::begin(container), index);
-          return it.get_parameters(index);
+          return container.get_parameters(index);
         } else {
           return std::vector<size_t>{ index };
         }
@@ -267,21 +266,15 @@ private:
 
     end_flag = (static_cast<size_t>(d) == boundries.back());
     auto container =
-      std::lower_bound(std::begin(boundries), std::end(boundries), d);
+      std::upper_bound(std::begin(boundries), std::end(boundries), d);
     auto container_idx = std::distance(std::begin(boundries), container);
 
-    if (boundries[container_idx] == static_cast<std::size_t>(d)) {
-      index.container_index = container_idx + 1;
-      index.element_index = 0;
-    } else {
-      if (container_idx == 0) {
-        index.container_index = 0;
-        index.element_index = d;
-      } else {
-        index.container_index = container_idx - 1;
-        index.element_index = d - boundries[index.container_index];
-      }
-    }
+		index.container_index = container_idx;
+		if (container_idx == 0) {
+			index.element_index = d;
+		} else {
+			index.element_index = d - boundries[index.container_index - 1];
+		}
   }
 
   void next_index(typename iterator::index_type& index, bool& end_flag) const
