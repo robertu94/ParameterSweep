@@ -243,7 +243,7 @@ TEST_F(ParameterSweepBuilder, IncrementCountDown)
 
 }
 
-TEST_F(ParameterSweepBuilder, toParameters)
+TEST_F(ParameterSweepBuilder, toParametersSimple)
 {
 	example.set_replicants(3);
 	{
@@ -252,7 +252,10 @@ TEST_F(ParameterSweepBuilder, toParameters)
 		std::vector<size_t> expected{0,0};
 		EXPECT_EQ(expected, params);
 	}
+}
 
+TEST_F(ParameterSweepBuilder, toParametersNested)
+{
 	Builder test_nested(i,example);
 	{
 		auto it = std::begin(test_nested);
@@ -260,8 +263,18 @@ TEST_F(ParameterSweepBuilder, toParameters)
 		std::vector<size_t> expected{0,0,0};
 		EXPECT_EQ(expected, params);
 	}
+}
 
-
-
-
+TEST_F(ParameterSweepBuilder, toParametersFactor)
+{
+	std::vector<int> f_1 = {1,2,3,4};
+	std::vector<int> f_2 = {1,2,3};
+	Factor factor{f_1, f_2};
+	Builder test_nested_factor(factor,i);
+	{
+		auto it = std::begin(test_nested_factor);
+		auto params = it.get_parameters();
+		std::vector<size_t> expected{0,0,0,0};
+		EXPECT_EQ(expected, params);
+	}
 }

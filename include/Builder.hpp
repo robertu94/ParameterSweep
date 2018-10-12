@@ -4,11 +4,13 @@
 #include <iostream>
 #include <iterator>
 #include <numeric>
-#include <vector>
 #include <tuple>
 #include <type_traits>
-#include <tuple_algorithms.hpp>
 #include <utility>
+#include <vector>
+
+#include "tuple_algorithms.hpp"
+#include "type_traits.hpp"
 
 namespace ParameterSweep {
 
@@ -26,18 +28,6 @@ enum class Design
 };
 std::ostream& operator<<(std::ostream&, Design const&);
 
-template <class T>
-struct is_builder{
-	private:
-		template<class U>
-			static auto test(int) -> decltype(std::declval<U>().get_parameters(0ull), std::true_type{});
-		template<class>
-			static std::false_type test(...);
-	public:
-		static constexpr bool value = std::is_same_v<decltype(test<T>(0)), std::true_type>;
-};
-template <class T> constexpr bool is_builder_v = is_builder<T>::value;
-
 template <class... Factors>
 class Builder
 {
@@ -52,7 +42,7 @@ public:
   class iterator
   {
   public:
-		using factor_type = std::tuple<Factors...>;
+    using factor_type = std::tuple<Factors...>;
     using difference_type = std::ptrdiff_t;
     using value_type = std::tuple<typename Factors::value_type...>;
     using reference = value_type&;
@@ -209,48 +199,42 @@ public:
       }
     }
 
-	difference_type get_id() const {
-		return builder->to_difference_type(indices, replicant, end_flag);
-	}
+    difference_type get_id() const
+    {
+      return builder->to_difference_type(indices, replicant, end_flag);
+    }
 
-	index_type get_indices() const {
-		return indices;
-	}
+    index_type get_indices() const { return indices; }
 
-	auto const& get_factors() const {
-		return builder->get_factors();
-	}
+    auto const& get_factors() const { return builder->get_factors(); }
 
-	
+    std::vector<size_t> get_parameters() const
+    {
+      std::vector<size_t> parameters;
+      auto const& factors = builder->get_factors();
+      auto const& indices_tup = array_to_tuple(indices);
 
-	std::vector<size_t> get_parameters() const {
-		std::vector<size_t> parameters;
-		auto const& factors = builder->get_factors();
-		auto const& indices_tup = array_to_tuple(indices);
-		
+      auto params_t = tuple_transform(
+        [](auto const& factor, auto const& index) -> std::vector<size_t> {
+          if constexpr (is_builder_v<std::decay_t<decltype(factor)>>) {
+            return factor.get_parameters(index);
+          } else {
+            return std::vector<size_t>{ index };
+          }
+        },
+        factors, indices_tup);
 
-	auto params_t = tuple_transform([](auto const& factor, auto const& index) -> std::vector<size_t>
-			{
-				if constexpr (is_builder_v<std::decay_t<decltype(factor)>>)
-				{
-					return factor.get_parameters(index);
-				} else {
-					std::vector<size_t> index_v{index};
-					return index_v;
-				}
-			}, factors, indices_tup);
+      auto params_a = tuple_to_array<std::vector<size_t>>(params_t);
 
-	auto params_a = tuple_to_array<std::vector<size_t>>(params_t);
+      std::vector<size_t> params_v;
+      for (auto const& param : params_a) {
+        for (auto const& entry : param) {
+          params_v.push_back(entry);
+        }
+      }
 
-	std::vector<size_t> params_v;
-	for (auto const& param : params_a) {
-			for (auto const& entry : param) {
-				params_v.push_back(entry);
-			}
-	}
-
-		return params_v;
-	}
+      return params_v;
+    }
 
   private:
     Builder const* builder;
@@ -286,12 +270,13 @@ public:
 
   iterator end() const { return { this, true }; }
 
-	auto levels() const {
+  auto levels() const
+  {
     auto dim_tuple =
       tuple_transform([](auto&& factor) { return std::size(factor); }, factors);
     auto dim = tuple_to_array<size_t>(dim_tuple);
-		return dim;
-	}
+    return dim;
+  }
 
   size_t size() const
   {
@@ -344,13 +329,12 @@ public:
                << std::tuple_size<std::tuple<Factors...>>::value << ")";
   }
 
-	auto const& get_factors() const {
-		return factors;
-	}
+  auto const& get_factors() const { return factors; }
 
-	auto get_parameters(size_t index) const {
-		return std::next(begin(), index).get_parameters();
-	}
+  auto get_parameters(size_t index) const
+  {
+    return std::next(begin(), index).get_parameters();
+  }
 
 private:
   Order order;
@@ -404,7 +388,7 @@ private:
         d -= (index[i] * boundries[i]);
       }
       replicant = d;
-			end_flag = false;
+      end_flag = false;
     } else {
       end_flag = true;
       std::fill(std::begin(index), std::end(index), 0);

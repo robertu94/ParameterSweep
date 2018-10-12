@@ -1,10 +1,10 @@
 #pragma once
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <iterator>
 #include <vector>
-#include <cmath>
 namespace ParameterSweep {
 /*
  * A class that represents values at standard deviations above and below the
@@ -19,8 +19,8 @@ public:
     , stddev(stddev)
     , levels(levels)
   {
-      assert(stddev > NumericType(0) &&
-             "the standard deviation must be greater than 0");
+    assert(stddev > NumericType(0) &&
+           "the standard deviation must be greater than 0");
   }
 
   using value_type = NumericType;
@@ -40,13 +40,13 @@ public:
     iterator(NormalFactor const* factor)
       : value(factor->mean - (factor->levels * factor->stddev))
       , factor(factor)
-    {
-    }
+    {}
     bool operator==(iterator const& it) const
     {
-		auto e1 = is_endptr();
-		auto e2 = it.is_endptr();
-      return (e1 && e2) || (!e1 && !e2 && value == it.value && factor == it.factor);
+      auto e1 = is_endptr();
+      auto e2 = it.is_endptr();
+      return (e1 && e2) ||
+             (!e1 && !e2 && value == it.value && factor == it.factor);
     }
     bool operator!=(iterator const& it) const { return !(*this == it); }
     reference operator*() { return value; }
@@ -80,7 +80,7 @@ public:
 
   iterator begin() const { return iterator(this); }
   iterator end() const { return iterator(); }
-  size_t size() const { return levels*2 + 1; };
+  size_t size() const { return levels * 2 + 1; };
 
 private:
   inline NumericType end_point() const { return (levels * stddev) + mean; }
@@ -91,38 +91,35 @@ private:
 /*
  * A class that represents values evenly spaced in a range
  */
-template<class T>
-struct Arithmatic {
-	static T increment(T current, T increment) {
-		return current + increment;
-	}
-	static T step_size(T min, T max, size_t levels) {
-		return  (max - min + 1)/levels;
-	}
+template <class T>
+struct Arithmatic
+{
+  static T increment(T current, T increment) { return current + increment; }
+  static T step_size(T min, T max, size_t levels)
+  {
+    return (max - min + 1) / levels;
+  }
 
-	static bool valid (T val) {
-		return val > 0;
-	}
+  static bool valid(T val) { return val > 0; }
 };
 
-template<class T>
-struct Geometric {
-	static T increment(T current, T increment) {
-		return current * increment;
-	}
-	static T step_size(T min, T max, size_t levels) {
-		double ret = exp(1.0/static_cast<double>(levels-1) * ( log(static_cast<double>(max)) - log(static_cast<double>(min))));
-		if constexpr(std::is_integral<T>::value) {
-			return std::round(ret);
-		} else {
-			return ret;
-		}
-	}
-	static bool valid(T val) {
-		return  val > 1.0;
-	}
+template <class T>
+struct Geometric
+{
+  static T increment(T current, T increment) { return current * increment; }
+  static T step_size(T min, T max, size_t levels)
+  {
+    double ret =
+      exp(1.0 / static_cast<double>(levels - 1) *
+          (log(static_cast<double>(max)) - log(static_cast<double>(min))));
+    if constexpr (std::is_integral<T>::value) {
+      return std::round(ret);
+    } else {
+      return ret;
+    }
+  }
+  static bool valid(T val) { return val > 1.0; }
 };
-
 
 template <class NumericType, template <class> class Increment = Arithmatic>
 class RangeFactor
@@ -133,24 +130,16 @@ public:
   RangeFactor(NumericType min, NumericType max, size_t levels)
     : min(min)
     , max(max)
-	, step_size(Step::step_size(min,max,levels))
+    , step_size(Step::step_size(min, max, levels))
     , levels(levels)
   {
-      assert(min < max &&
-             "the max should be greater than the min");
-      assert(Step::valid(step_size) &&
-             "the iterator increment should be valid");
+    assert(min < max && "the max should be greater than the min");
+    assert(Step::valid(step_size) && "the iterator increment should be valid");
   }
 
-  NumericType get_max() const {
-	  return max;
-  }
-  NumericType get_min() const {
-	  return min;
-  }
-  NumericType get_step_size() const {
-	  return step_size();
-  }
+  NumericType get_max() const { return max; }
+  NumericType get_min() const { return min; }
+  NumericType get_step_size() const { return step_size(); }
 
   using value_type = NumericType;
   class iterator
@@ -169,13 +158,13 @@ public:
     iterator(RangeFactor const* factor)
       : value(factor->min)
       , factor(factor)
-    {
-    }
+    {}
     bool operator==(iterator const& it) const
     {
-	  auto e1 = is_endptr();
-	  auto e2 = it.is_endptr();
-      return (e1 && e2) || (!e1 && !e2 && value == it.value && factor == it.factor);
+      auto e1 = is_endptr();
+      auto e2 = it.is_endptr();
+      return (e1 && e2) ||
+             (!e1 && !e2 && value == it.value && factor == it.factor);
     }
     bool operator!=(iterator const& it) const { return !(*this == it); }
     reference operator*() { return value; }
@@ -188,7 +177,7 @@ public:
     }
     iterator& operator++()
     {
-      value = Step::increment(value,factor->step_size);
+      value = Step::increment(value, factor->step_size);
       return *this;
     }
     iterator operator++(int)
@@ -209,7 +198,7 @@ public:
 
   iterator begin() const { return iterator(this); }
   iterator end() const { return iterator(); }
-  size_t size() const { return levels;}
+  size_t size() const { return levels; }
 
 private:
   NumericType min, max, step_size;
@@ -258,12 +247,14 @@ public:
   class iterator
   {
   public:
-  using value_type = decltype(
-    func(std::declval<typename std::iterator_traits<typename Container::iterator>::reference>()));
+    using value_type =
+      decltype(func(std::declval<typename std::iterator_traits<
+                      typename Container::iterator>::reference>()));
     using reference = value_type&;
     using pointer = value_type*;
     using difference_type = std::ptrdiff_t;
-    using iterator_category = typename std::iterator_traits<typename Container::iterator>::iterator_category;
+    using iterator_category = typename std::iterator_traits<
+      typename Container::iterator>::iterator_category;
 
     iterator(TransformFactor const* factor)
       : factor(factor)
@@ -305,48 +296,57 @@ public:
       return tmp;
     }
 
-	iterator operator+(difference_type n) {
-		iterator tmp = *this;
-		tmp+=n;
-		return tmp;
-	}
-	iterator& operator+=(difference_type n) {
-		current += n;
-		if(current != std::end(factor->container)) {
-			value = factor->func(*current);
-		}
-		return *this;
-	}
-	iterator& operator-=(difference_type n) {*this += (-n); return *this;}
-	iterator operator-(difference_type n) { return *this + (-n); }
-	difference_type operator-(iterator const& it) {
-		return current - it.current;
-	}
-	value_type operator[](size_t n) const {
-		return factor->func(*(current+n));
-	}
+    iterator operator+(difference_type n)
+    {
+      iterator tmp = *this;
+      tmp += n;
+      return tmp;
+    }
+    iterator& operator+=(difference_type n)
+    {
+      current += n;
+      if (current != std::end(factor->container)) {
+        value = factor->func(*current);
+      }
+      return *this;
+    }
+    iterator& operator-=(difference_type n)
+    {
+      *this += (-n);
+      return *this;
+    }
+    iterator operator-(difference_type n) { return *this + (-n); }
+    difference_type operator-(iterator const& it)
+    {
+      return current - it.current;
+    }
+    value_type operator[](size_t n) const
+    {
+      return factor->func(*(current + n));
+    }
 
     reference operator*() { return value; }
     reference operator->() { return value; }
     bool operator==(iterator const& it) const
     {
-		auto e1 = is_endptr();
-		auto e2 = it.is_endptr();
+      auto e1 = is_endptr();
+      auto e2 = it.is_endptr();
       return (e1 && e2) ||
              (!e1 && !e2 && factor == it.factor && current == it.current);
     }
     bool operator!=(iterator const& it) const { return !(*this == it); }
-	bool operator<(iterator const& it) const { return current < it.current;}
-	bool operator>(iterator const& it) const { return it.current < current;}
-	bool operator<=(iterator const& it) const {return !(*this < it);}
-	bool operator>=(iterator const& it) const {return !( it< *this );}
+    bool operator<(iterator const& it) const { return current < it.current; }
+    bool operator>(iterator const& it) const { return it.current < current; }
+    bool operator<=(iterator const& it) const { return !(*this < it); }
+    bool operator>=(iterator const& it) const { return !(it < *this); }
 
   private:
-	bool is_endptr() const {
-		return factor == nullptr || current == std::end(factor->container);
-	}
+    bool is_endptr() const
+    {
+      return factor == nullptr || current == std::end(factor->container);
+    }
     TransformFactor const* factor;
-	typename Container::iterator current;
+    typename Container::iterator current;
     value_type value;
   };
   using value_type = typename iterator::value_type;
