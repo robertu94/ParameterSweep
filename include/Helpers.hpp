@@ -5,6 +5,9 @@
 #include <cstddef>
 #include <iterator>
 #include <vector>
+
+#include "type_traits.hpp"
+
 namespace ParameterSweep {
 /*
  * A class that represents values at standard deviations above and below the
@@ -340,6 +343,16 @@ public:
     bool operator<=(iterator const& it) const { return !(*this < it); }
     bool operator>=(iterator const& it) const { return !(it < *this); }
 
+    std::vector<std::size_t> get_parameters() const
+    {
+      if constexpr (is_builder_it_v<typename Container::iterator>) {
+        return current.get_parameters();
+      } else {
+        return std::vector<size_t>{ static_cast<size_t>(
+          std::distance(factor->begin(), *this)) };
+      }
+    }
+
   private:
     bool is_endptr() const
     {
@@ -350,6 +363,13 @@ public:
     value_type value;
   };
   using value_type = typename iterator::value_type;
+
+  std::vector<std::size_t> get_parameters(std::size_t index) const
+  {
+    std::vector<std::size_t> params;
+    auto it = std::next(begin(), index);
+    return it.get_parameters();
+  }
 
   iterator begin() const { return iterator(this); }
   iterator end() const { return iterator(); }

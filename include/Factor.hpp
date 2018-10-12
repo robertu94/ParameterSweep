@@ -269,12 +269,12 @@ private:
       std::upper_bound(std::begin(boundries), std::end(boundries), d);
     auto container_idx = std::distance(std::begin(boundries), container);
 
-		index.container_index = container_idx;
-		if (container_idx == 0) {
-			index.element_index = d;
-		} else {
-			index.element_index = d - boundries[index.container_index - 1];
-		}
+    index.container_index = container_idx;
+    if (container_idx == 0) {
+      index.element_index = d;
+    } else {
+      index.element_index = d - boundries[index.container_index - 1];
+    }
   }
 
   void next_index(typename iterator::index_type& index, bool& end_flag) const
