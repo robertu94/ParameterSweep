@@ -12,3 +12,5 @@ test_helpers = executable('test_helpers', 'test_helpers.cc', include_directories
 test('test_helpers', test_helpers)
 test_distributions = executable('test_distributions', 'test_distributions.cc', include_directories: [test_inc], dependencies: [gtest_dep, parameter_sweep_dep])
 test('test_distributions', test_distributions)
+test_random_order = executable('test_random_order', 'test_random_order.cc', include_directories: [test_inc], dependencies: [gtest_dep, parameter_sweep_dep])
+test('test_random_order', test_random_order)
