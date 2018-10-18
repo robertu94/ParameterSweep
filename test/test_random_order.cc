@@ -6,11 +6,22 @@
 
 #include "RandomOrder.hpp"
 
-TEST(RandomOrder, GetsAllTheValues) {
-	std::vector<int> container(100);
-	std::iota(container.begin(), container.end(), 0);
+class RandomOrderTest: public ::testing::Test
+{
+	protected:
+	virtual void SetUp() {
+		container = std::vector<int>(100);
+		std::iota(container.begin(), container.end(), 0);
 
-	std::set<int> expected(container.begin(), container.end());
+	  expected = std::set<int>(container.begin(), container.end());
+	}
+
+	std::vector<int> container;
+	std::set<int> expected;
+
+};
+
+TEST_F(RandomOrderTest, GetsAllTheValues) {
 	std::set<int> results;
 	std::vector<int> order;
 
@@ -20,6 +31,13 @@ TEST(RandomOrder, GetsAllTheValues) {
 
 	EXPECT_EQ(expected, results);
 	EXPECT_NE(order, container);
+}
 
+TEST_F(RandomOrderTest, IdsAreAccending) {
+	RandomOrder<decltype(container), 223, 331> random(container);
 
+	auto it = std::begin(random);
+	for (size_t i = 0; i < std::size(random); ++i, ++it) {
+		EXPECT_EQ(i, it.get_id());
+	}
 }

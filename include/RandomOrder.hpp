@@ -30,16 +30,15 @@ class RandomOrder
 			using iterator_category = std::random_access_iterator_tag;
 
 			iterator();
-			iterator(iterator_ it, params_type t, bool is_end=false):
-				params(t),
-				index(is_end?t:0),
-				it(it),
+			iterator(RandomOrder const* ptr, bool is_end=false):
+				ptr(ptr),
+				index(is_end?ptr->size():0),
 				value()
 		{
 			if(!is_end) update();
 		}
 
-			reference operator*() {
+			value_type operator*() const{
 				return value;
 			}
 			pointer operator->() const {
@@ -115,27 +114,57 @@ class RandomOrder
 				return index != rhs.index;
 			}
 
-		private:
-			void update() {
-				auto mapped_index = (A + (B * index)) % params;
-				value = *std::next(it, mapped_index);
+			auto get_parameters() const {
+				return (ptr->first()+mapped_index()).get_parameters();
 			}
-		params_type params;
+
+			auto get_id() const {
+				return index;
+			}
+
+		private:
+
+				size_t mapped_index() const {
+				return (A + (B * index)) % ptr->size();
+				}
+
+			void update() {
+				value = *std::next(ptr->first(), mapped_index());
+			}
+		RandomOrder const* ptr;
 		size_t index;
-		iterator_ it;
 		value_type value;
 	};
 
 
-	iterator begin() {
-		return iterator(std::begin(container), std::size(container));
+	iterator begin() const {
+		return iterator(this);
 	}
 
-	iterator end() {
-		return iterator(std::end(container), std::size(container), true);
+	iterator end() const {
+		return iterator(this, true);
+	}
+
+	size_t size() const {
+		return std::size(container);
+	}
+	auto levels() const {
+		return container.levels();
+	}
+
+
+
+	auto get_parameters(size_t i) const {
+		auto it = std::advance(begin(),i);
+		return it.get_parameters();
 	}
 
 	private:
+
+	auto first() const {
+		return std::begin(container);
+	}
+	
 	
 		T container;
 };
