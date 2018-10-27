@@ -96,6 +96,19 @@ public:
       return tmp;
     }
 
+		iterator operator--(int)
+		{
+      iterator tmp = *this;
+      (*this) -= 1;
+      return tmp;
+		}
+
+		iterator& operator--()
+		{
+      (*this) -= 1;
+			return *this;
+		}
+
     difference_type operator-(iterator const& ptr) const
     {
       auto const* cmp = get_real_factor_or_null(ptr);
